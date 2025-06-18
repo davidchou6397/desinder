@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動設計工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            display: flex;
+            height: 80vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #4facfe;
+            padding-bottom: 5px;
+        }
+
+        .material-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .material-item {
+            aspect-ratio: 1;
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .material-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+
+        .text-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input, select, button {
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        button {
+            background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+            position: relative;
+        }
+
+        .canvas-toolbar {
+            background: white;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        #designCanvas {
+            border: 3px dashed #4facfe;
+            border-radius: 15px;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .canvas-element {
+            position: absolute;
+            cursor: move;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .canvas-element:hover {
+            border-color: #4facfe;
+        }
+
+        .canvas-element.selected {
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #4facfe;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: nw-resize;
+            bottom: -5px;
+            right: -5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .logo-layer {
+            z-index: 1000 !important;
+            pointer-events: none;
+        }
+
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .preview-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #e9ecef;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .canvas-element {
+            animation: slideIn 0.3s ease;
+        }
+
+        .export-section {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 10px 15px;
+            background: linear-gradient(45deg, #a8e6cf 0%, #88d8a3 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(136, 216, 163, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 互動設計工具</h1>
+            <p>拖拉素材、添加文字，創造您的專屬設計</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="section">
+                    <h3>📁 上傳素材</h3>
+                    <label for="imageUpload" class="file-input-label">
+                        📤 選擇圖片
+                    </label>
+                    <input type="file" id="imageUpload" class="file-input" accept="image/*" multiple>
+                    
+                    <label for="logoUpload" class="file-input-label">
+                        🏷️ 上傳LOGO
+                    </label>
+                    <input type="file" id="logoUpload" class="file-input" accept="image/*">
+                </div>
+
+                <div class="section">
+                    <h3>🖼️ 預設素材</h3>
+                    <div class="material-grid">
+                        <div class="material-item" data-type="shape" data-content="⭐">⭐</div>
+                        <div class="material-item" data-type="shape" data-content="❤️">❤️</div>
+                        <div class="material-item" data-type="shape" data-content="🎉">🎉</div>
+                        <div class="material-item" data-type="shape" data-content="🌟">🌟</div>
+                        <div class="material-item" data-type="shape" data-content="🎈">🎈</div>
+                        <div class="material-item" data-type="shape" data-content="🎊">🎊</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>✏️ 文字工具</h3>
+                    <div class="text-controls">
+                        <div class="control-group">
+                            <label>文字內容</label>
+                            <input type="text" id="textInput" placeholder="輸入文字...">
+                        </div>
+                        <div class="control-group">
+                            <label>字體</label>
+                            <select id="fontSelect">
+                                <option value="Microsoft JhengHei">微軟正黑體</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Verdana">Verdana</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>字體大小</label>
+                            <input type="range" id="fontSizeSlider" min="12" max="72" value="24">
+                            <span id="fontSizeValue">24px</span>
+                        </div>
+                        <div class="control-group">
+                            <label>文字顏色</label>
+                            <div class="color-picker-container">
+                                <input type="color" id="textColorPicker" value="#000000">
+                                <div class="color-preview" id="colorPreview"></div>
+                            </div>
+                        </div>
+                        <button id="addTextBtn">➕ 新增文字</button>
+                    </div>
+                </div>
+
+                <div class="section export-section">
+                    <h3>💾 匯出設計</h3>
+                    <button id="previewBtn" style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); margin-bottom: 10px;">
+                        👁️ 預覽設計
+                    </button>
+                    <button id="exportBtn">
+                        📥 匯出PNG
+                    </button>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <div class="canvas-toolbar">
+                    <button id="clearBtn">🗑️ 清空畫布</button>
+                    <button id="deleteSelectedBtn">❌ 刪除選中</button>
+                    <span style="margin-left: auto; color: #6c757d;">畫布尺寸: 600 x 400</span>
+                </div>
+                
+                <div class="canvas-area">
+                    <div id="designCanvas" style="width: 600px; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 預覽模態框 -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <button class="close-btn" id="closePreview">×</button>
+            <h2 style="margin-bottom: 20px; text-align: center;">設計預覽</h2>
+            <canvas id="previewCanvas" style="max-width: 100%; border: 1px solid #ddd; border-radius: 10px;"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let selectedElement = null;
+        let isDragging = false;
+        let isResizing = false;
+        let dragOffset = { x: 0, y: 0 };
+        let elementCounter = 0;
+        let logoElement = null;
+
+        const canvas = document.getElementById('designCanvas');
+        const imageUpload = document.getElementById('imageUpload');
+        const logoUpload = document.getElementById('logoUpload');
+        const textInput = document.getElementById('textInput');
+        const fontSelect = document.getElementById('fontSelect');
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        const textColorPicker = document.getElementById('textColorPicker');
+        const colorPreview = document.getElementById('colorPreview');
+        const addTextBtn = document.getElementById('addTextBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const previewModal = document.getElementById('previewModal');
+        const closePreview = document.getElementById('closePreview');
+
+        // 初始化顏色預覽
+        function updateColorPreview() {
+            colorPreview.style.backgroundColor = textColorPicker.value;
+        }
+
+        // 字體大小滑塊事件
+        fontSizeSlider.addEventListener('input', function() {
+            fontSizeValue.textContent = this.value + 'px';
+        });
+
+        textColorPicker.addEventListener('change', updateColorPreview);
+        updateColorPreview();
+
+        // 預設素材點擊事件
+        document.querySelectorAll('.material-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const content = this.getAttribute('data-content');
+                addElementToCanvas('emoji', content);
+            });
+        });
+
+        // 圖片上傳
+        imageUpload.addEventListener('change', function(e) {
+            const files = e.target.files;
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        addElementToCanvas('image', e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        // LOGO上傳
+        logoUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // 移除舊的LOGO
+                    if (logoElement) {
+                        logoElement.remove();
+                    }
+                    logoElement = addElementToCanvas('logo', e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 新增文字
+        addTextBtn.addEventListener('click', function() {
+            const text = textInput.value.trim();
+            if (text) {
+                const textData = {
+                    content: text,
+                    font: fontSelect.value,
+                    size: fontSizeSlider.value,
+                    color: textColorPicker.value
+                };
+                addElementToCanvas('text', textData);
+                textInput.value = '';
+            }
+        });
+
+        // 添加元素到畫布
+        function addElementToCanvas(type, data) {
+            elementCounter++;
+            const element = document.createElement('div');
+            element.className = 'canvas-element';
+            element.id = 'element-' + elementCounter;
+            
+            // 設置初始位置
+            const randomX = Math.random() * (canvas.offsetWidth - 100);
+            const randomY = Math.random() * (canvas.offsetHeight - 100);
+            element.style.left = randomX + 'px';
+            element.style.top = randomY + 'px';
+
+            if (type === 'emoji') {
+                element.innerHTML = data;
+                element.style.fontSize = '40px';
+                element.style.width = '50px';
+                element.style.height = '50px';
+                element.style.display = 'flex';
+                element.style.alignItems = 'center';
+                element.style.justifyContent = 'center';
+            } else if (type === 'image' || type === 'logo') {
+                const img = document.createElement('img');
+                img.src = data;
+                img.style.maxWidth = '150px';
+                img.style.maxHeight = '150px';
+                img.style.width = 'auto';
+                img.style.height = 'auto';
+                img.draggable = false;
+                element.appendChild(img);
+                
+                if (type === 'logo') {
+                    element.classList.add('logo-layer');
+                    element.style.zIndex = '1000';
+                }
+            } else if (type === 'text') {
+                element.innerHTML = data.content;
+                element.style.fontFamily = data.font;
+                element.style.fontSize = data.size + 'px';
+                element.style.color = data.color;
+                element.style.whiteSpace = 'nowrap';
+                element.style.userSelect = 'none';
+            }
+
+            // 添加調整大小手柄
+            if (type !== 'logo') {
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'resize-handle';
+                element.appendChild(resizeHandle);
+            }
+
+            // 添加事件監聽器
+            element.addEventListener('mousedown', startDrag);
+            element.addEventListener('click', selectElement);
+
+            canvas.appendChild(element);
+            
+            if (type === 'logo') {
+                return element;
+            }
+        }
+
+        // 選擇元素
+        function selectElement(e) {
+            e.stopPropagation();
+            
+            // 移除其他元素的選中狀態
+            document.querySelectorAll('.canvas-element').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // 選中當前元素
+            this.classList.add('selected');
+            selectedElement = this;
+        }
+
+        // 開始拖拽
+        function startDrag(e) {
+            if (e.target.classList.contains('resize-handle')) {
+                isResizing = true;
+                selectedElement = e.target.parentElement;
+            } else {
+                isDragging = true;
+                selectedElement = e.currentTarget;
+                
+                const rect = selectedElement.getBoundingClientRect();
+                const canvasRect = canvas.getBoundingClientRect();
+                
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+            }
+            
+            e.preventDefault();
+        }
+
+        // 鼠標移動事件
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging && selectedElement && !selectedElement.classList.contains('logo-layer')) {
+                const canvasRect = canvas.getBoundingClientRect();
+                let newX = e.clientX - canvasRect.left - dragOffset.x;
+                let newY = e.clientY - canvasRect.top - dragOffset.y;
+                
+                // 邊界檢查
+                newX = Math.max(0, Math.min(newX, canvas.offsetWidth - selectedElement.offsetWidth));
+                newY = Math.max(0, Math.min(newY, canvas.offsetHeight - selectedElement.offsetHeight));
+                
+                selectedElement.style.left = newX + 'px';
+                selectedElement.style.top = newY + 'px';
+            } else if (isResizing && selectedElement) {
+                const canvasRect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - canvasRect.left;
+                const mouseY = e.clientY - canvasRect.top;
+                const elementRect = selectedElement.getBoundingClientRect();
+                const elementLeft = elementRect.left - canvasRect.left;
+                const elementTop = elementRect.top - canvasRect.top;
+                
+                const newWidth = Math.max(20, mouseX - elementLeft);
+                const newHeight = Math.max(20, mouseY - elementTop);
+                
+                selectedElement.style.width = newWidth + 'px';
+                selectedElement.style.height = newHeight + 'px';
+                
+                const img = selectedElement.querySelector('img');
+                if (img) {
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'contain';
+                }
+            }
+        });
+
+        // 停止拖拽
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            isResizing = false;
+        });
+
+        // 點擊畫布取消選擇
+        canvas.addEventListener('click', function(e) {
+            if (e.target === canvas) {
+                document.querySelectorAll('.canvas-element').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                selectedElement = null;
+            }
+        });
+
+        // 清空畫布
+        clearBtn.addEventListener('click', function() {
+            if (confirm('確定要清空所有內容嗎？')) {
+                const elements = canvas.querySelectorAll('.canvas-element');
+                elements.forEach(el => el.remove());
+                selectedElement = null;
+                logoElement = null;
+            }
+        });
+
+        // 刪除選中元素
+        deleteSelectedBtn.addEventListener('click', function() {
+            if (selectedElement && !selectedElement.classList.contains('logo-layer')) {
+                selectedElement.remove();
+                selectedElement = null;
+            } else if (selectedElement && selectedElement.classList.contains('logo-layer')) {
+                alert('LOGO圖層無法刪除！');
+            }
+        });
+
+        // 預覽功能
+        previewBtn.addEventListener('click', function() {
+            generatePreview();
+            previewModal.style.display = 'flex';
+        });
+
+        closePreview.addEventListener('click', function() {
+            previewModal.style.display = 'none';
+        });
+
+        // 生成預覽
+        function generatePreview() {
+            const previewCanvas = document.getElementById('previewCanvas');
+            const ctx = previewCanvas.getContext('2d');
+            
+            previewCanvas.width = 600;
+            previewCanvas.height = 400;
+            
+            // 清空畫布
+            ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            
+            // 獲取所有元素並按z-index排序
+            const elements = Array.from(canvas.querySelectorAll('.canvas-element'));
+            elements.sort((a, b) => {
+                const aZ = parseInt(a.style.zIndex) || 0;
+                const bZ = parseInt(b.style.zIndex) || 0;
+                return aZ - bZ;
+            });
+            
+            let loadPromises = [];
+            
+            elements.forEach(element => {
+                const rect = element.getBoundingClientRect();
+                const canvasRect = canvas.getBoundingClientRect();
+                const x = rect.left - canvasRect.left;
+                const y = rect.top - canvasRect.top;
+                
+                const img = element.querySelector('img');
+                if (img) {
+                    const promise = new Promise(resolve => {
+                        const image = new Image();
+                        image.onload = function() {
+                            ctx.drawImage(image, x, y, rect.width, rect.height);
+                            resolve();
+                        };
+                        image.src = img.src;
+                    });
+                    loadPromises.push(promise);
+                } else {
+                    // 文字或emoji
+                    const computedStyle = window.getComputedStyle(element);
+                    ctx.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+                    ctx.fillStyle = computedStyle.color;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(element.textContent, x, y);
+                }
+            });
+            
+            return Promise.all(loadPromises);
+        }
+
+        // 匯出PNG
+        exportBtn.addEventListener('click', async function() {
+            try {
+                await generatePreview();
+                
+                const previewCanvas = document.getElementById('previewCanvas');
+                const ctx = previewCanvas.getContext('2d');
+                
+                // 創建新的canvas用於匯出（不包含LOGO）
+                const exportCanvas = document.createElement('canvas');
+                const exportCtx = exportCanvas.getContext('2d');
+                exportCanvas.width = 600;
+                exportCanvas.height = 400;
+                
+                // 獲取所有非LOGO元素
+                const elements = Array.from(canvas.querySelectorAll('.canvas-element:not(.logo-layer)'));
+                
+                let loadPromises = [];
+                
+                elements.forEach(element => {
+                    const rect = element.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const x = rect.left - canvasRect.left;
+                    const y = rect.top - canvasRect.top;
+                    
+                    const img = element.querySelector('img');
+                    if (img) {
+                        const promise = new Promise(resolve => {
+                            const image = new Image();
+                            image.onload = function() {
+                                exportCtx.drawImage(image, x, y, rect.width, rect.height);
+                                resolve();
+                            };
+                            image.src = img.src;
+                        });
+                        loadPromises.push(promise);
+                    } else {
+                        // 文字或emoji
+                        const computedStyle = window.getComputedStyle(element);
+                        exportCtx.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+                        exportCtx.fillStyle = computedStyle.color;
+                        exportCtx.textAlign = 'left';
+                        exportCtx.textBaseline = 'top';
+                        exportCtx.fillText(element.textContent, x, y);
+                    }
+                });
+                
+                await Promise.all(loadPromises);
+                
+                // 下載PNG
+                exportCanvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `設計作品_${new Date().getTime()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+                
+            } catch (error) {
+                console.error('匯出失敗:', error);
+                alert('匯出失敗，請重試！');
+            }
+        });
+
+        // 鍵盤快捷鍵
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Delete' && selectedElement && !selectedElement.classList.contains('logo-layer')) {
+                selectedElement.remove();
+                selectedElement = null;
+            }
+        });
+
+        // 阻止默認的拖拽行為
+        canvas.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        canvas.addEventListener('drop', function(e) {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>
